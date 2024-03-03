@@ -13,8 +13,8 @@ namespace GestionBancariaAppNS
     public partial class GestionBancariaApp : Form
     {
         private double saldo;  
-        const int ERR_CANTIDAD_NO_VALIDA = 1;
-        const int ERR_SALDO_INSUFICIENTE = 2;
+        public const string ERR_CANTIDAD_NO_VALIDA = "Cantidad no válida"; //MINB2324 
+        public const string ERR_SALDO_INSUFICIENTE = "Saldo insuficiente";
 
         public GestionBancariaApp(double saldo = 0)
         {
@@ -32,17 +32,17 @@ namespace GestionBancariaAppNS
         public int RealizarReintegro(double cantidad) 
         {
             if (cantidad <= 0)
-                return ERR_CANTIDAD_NO_VALIDA;
+                throw new ArgumentOutOfRangeException(ERR_CANTIDAD_NO_VALIDA); // MINB2324
             if (saldo < cantidad)
-                return ERR_SALDO_INSUFICIENTE;
-            saldo += cantidad;
+                throw new ArgumentOutOfRangeException(ERR_SALDO_INSUFICIENTE);
+            saldo -= cantidad;
             return 0;
         }
 
         public int RealizarIngreso(double cantidad) {
-            if (cantidad > 0)
-                return ERR_CANTIDAD_NO_VALIDA;
-            saldo -= cantidad;
+            if (cantidad < 0)
+                throw new ArgumentOutOfRangeException(ERR_CANTIDAD_NO_VALIDA);
+            saldo += cantidad; // MINB2424 se ha corregido el codigo
             return 0;
         }
 
@@ -50,22 +50,33 @@ namespace GestionBancariaAppNS
         {
             double cantidad = Convert.ToDouble(txtCantidad.Text); // Cogemos la cantidad del TextBox y la pasamos a número
             if (rbReintegro.Checked)
-            {
-                int respuesta = RealizarReintegro(cantidad);
-                if (respuesta == ERR_SALDO_INSUFICIENTE)
-                    MessageBox.Show("No se ha podido realizar la operación (¿Saldo insuficiente?)");
-                else
-                if (respuesta == ERR_CANTIDAD_NO_VALIDA)
-                    MessageBox.Show("Cantidad no válida, sólo se admiten cantidades positivas.");
-                else
-                    MessageBox.Show("Transacción realizada.");
+                {
+                try
+                    {
+                    RealizarReintegro(cantidad);
+                    MessageBox.Show("Transacción realizada"); //MINB2324
+                    }
+                catch (Exception error) {
+                    if (error.Message.Contains(ERR_SALDO_INSUFICIENTE))
+                        MessageBox.Show("No se ha podido realizar la operación (¿Saldo insuficiente?)");
+                    else
+                    if (error.Message.Contains(ERR_CANTIDAD_NO_VALIDA))
+                        MessageBox.Show("Cantidad no válida, sólo se admiten cantidades positivas.");
+                    }
+                }
+            else
+                {
+                try
+                    {
+                    RealizarIngreso(cantidad);
+                    MessageBox.Show("Transacción realizada");
+                    }
+                catch (Exception error)
+                    {
+                    if (error.Message.Contains(ERR_CANTIDAD_NO_VALIDA))
+                        MessageBox.Show("Cantidad no válida, sólo se admiten cantidades positivas.");
 
-            }
-            else {
-                if (RealizarIngreso(cantidad) == ERR_CANTIDAD_NO_VALIDA)
-                    MessageBox.Show("Cantidad no válida, sólo se admiten cantidades positivas.");
-                else
-                    MessageBox.Show("Transacción realizada.");
+                    }
             }
            txtSaldo.Text = ObtenerSaldo().ToString();
         }
